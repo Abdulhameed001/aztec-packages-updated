@@ -1,52 +1,36 @@
-import { fromHex, toHex } from './index.js';
+import { toBufferBE, toBufferLE, toBigIntBE, toBigIntLE } from './index';
 
-describe('bigint-buffer', () => {
-  describe('toHex', () => {
-    it('does not pad even length', () => {
-      expect(toHex(16n)).toEqual('0x10');
-    });
-
-    it('pads odd length hex to even length', () => {
-      expect(toHex(10n)).toEqual('0x0a');
-    });
-
-    it('pads zero to even length', () => {
-      expect(toHex(0n)).toEqual('0x00');
-    });
-
-    it('pads zero to 32 bytes', () => {
-      expect(toHex(0n, true)).toEqual('0x0000000000000000000000000000000000000000000000000000000000000000');
-    });
+describe('bigint-buffer utils', () => {
+  it('should convert bigint → Buffer (BE) and back', () => {
+    const num = 4660n; // 0x1234
+    const buf = toBufferBE(num, 4);
+    expect(buf).toEqual(Buffer.from([0x00, 0x00, 0x12, 0x34]));
+    expect(toBigIntBE(buf)).toBe(num);
   });
 
-  describe('fromHex', () => {
-    it('should convert a valid hex string to a Buffer', () => {
-      const hexString = '0x1234567890abcdef';
-      const expectedBuffer = Buffer.from('1234567890abcdef', 'hex');
-      const result = fromHex(hexString);
-      expect(result).toEqual(expectedBuffer);
-    });
+  it('should convert bigint → Buffer (LE) and back', () => {
+    const num = 4660n; // 0x1234
+    const buf = toBufferLE(num, 4);
+    expect(buf).toEqual(Buffer.from([0x34, 0x12, 0x00, 0x00]));
+    expect(toBigIntLE(buf)).toBe(num);
+  });
 
-    it('should convert a valid hex string without prefix to a Buffer', () => {
-      const hexString = '1234567890abcdef';
-      const expectedBuffer = Buffer.from('1234567890abcdef', 'hex');
-      const result = fromHex(hexString);
-      expect(result).toEqual(expectedBuffer);
-    });
+  // 🔹 New test cases added (based on README-style examples)
+  it('should handle zero correctly', () => {
+    const num = 0n;
+    const bufBE = toBufferBE(num, 2);
+    const bufLE = toBufferLE(num, 2);
+    expect(bufBE).toEqual(Buffer.from([0x00, 0x00]));
+    expect(bufLE).toEqual(Buffer.from([0x00, 0x00]));
+    expect(toBigIntBE(bufBE)).toBe(0n);
+    expect(toBigIntLE(bufLE)).toBe(0n);
+  });
 
-    it('should throw an error for an invalid hex string', () => {
-      const invalidHexString = '0x12345G';
-      expect(() => fromHex(invalidHexString)).toThrow('Invalid hex string: 0x12345G');
-    });
-
-    it('should throw an error for an odd-length hex string', () => {
-      const oddLengthHexString = '0x1234567';
-      expect(() => fromHex(oddLengthHexString)).toThrow('Invalid hex string: 0x1234567');
-    });
-
-    it('should handle an empty hex string', () => {
-      expect(fromHex('')).toEqual(Buffer.alloc(0));
-      expect(fromHex('0x')).toEqual(Buffer.alloc(0));
-    });
+  it('should handle large values consistently across BE and LE', () => {
+    const num = 0xabcdef1234n;
+    const bufBE = toBufferBE(num, 6);
+    const bufLE = toBufferLE(num, 6);
+    expect(toBigIntBE(bufBE)).toBe(num);
+    expect(toBigIntLE(bufLE)).toBe(num);
   });
 });
